@@ -45,6 +45,8 @@ Scope used: `openid email https://www.googleapis.com/auth/drive.file` — delibe
 
 Permissions: user `gdrive.read|connect|manage`, server `gdrive.push|restore`.
 
+More information about the Google Cloud setup is also available [here](https://github.com/Caloptreyx/google-drive/blob/main/DEVELOPMENT.md#google-cloud-setup-once-by-the-admin).
+
 ## ❓ Usage
 
 Open **Account → Google Drive** and click **Connect Google Drive**. The page then shows the connection (with a red banner and re-link button when Google rejects the grant), Drive storage against the panel's mirrored upload totals, the folder's files with drill-down and per-file **Restore**/**Delete**, finished server backups with Push / Retry / **Restore**, and the push history with live progress and cancel.
