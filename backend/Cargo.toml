@@ -1,0 +1,33 @@
+[package]
+name = "dev_caloptreyx_gdrive"
+description = "Link your Google Drive and push server backups to it."
+authors = ["Caloptreyx"]
+version = "1.0.0"
+edition = { workspace = true }
+
+[dependencies]
+shared = { workspace = true }
+async-trait = { workspace = true }
+tracing = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+semver = { workspace = true }
+utoipa = { workspace = true }
+utoipa-axum = { workspace = true }
+anyhow = { workspace = true }
+compact_str = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }
+indexmap = { workspace = true }
+axum = { workspace = true }
+tower-cookies = { workspace = true }
+wings-api = { workspace = true }
+urlencoding = { workspace = true }
+sqlx = { workspace = true }
+reqwest = { workspace = true }
+garde = { workspace = true }
+tokio = { workspace = true }
+futures-util = { workspace = true }
+
+[dev-dependencies]
+tower = { workspace = true, features = ["util"] }

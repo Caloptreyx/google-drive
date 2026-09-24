@@ -1,0 +1,6 @@
+package_name = "dev.caloptreyx.gdrive"
+name = "Google Drive Backups"
+# 1.2.2, not 1.2.3: every panel API this extension uses exists in the 1.2.2 release,
+# and `search_sql` (the only 1.2.3-only symbol) is deliberately reimplemented locally in
+# `src/models.rs` so the package installs onto released panels.
+panel_version = ">=1.2.2"
