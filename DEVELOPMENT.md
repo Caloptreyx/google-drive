@@ -34,6 +34,8 @@ already landed there - rclone-style, from the panel.
 - **Credential probe**: the Configure page exchanges a throwaway code against Google
   and classifies the answer - a bad client id/secret or a redirect-URI mismatch is
   diagnosed with the exact redirect URI this panel sends, before anyone tries to link.
+  The Configure card's header also carries a *Support & feature requests* link to the
+  Caloptreyx Discord.
 - **Reconnect banner**: when Google invalidates a stored grant (`invalid_grant`), that
   account's uploads pause and the account page says so, with the button that fixes it.
   Queued uploads resume on their own once the account reconnects.

@@ -69,6 +69,10 @@ Full schemas are in the panel's OpenAPI document once installed.
 - Enumerating shared drives directly — currently limited to a pasted folder id because `drives.list` sits outside the `drive.file` scope.
 - Translations (English only for now).
 
+## 💬 Support
+
+Need help or want to request a feature? Join the [Caloptreyx Discord](https://discord.gg/4qjMWU7S8x).
+
 ## 📃 License
 
 This extension is currently licensed under the [MIT](https://github.com/Caloptreyx/google-drive/blob/main/LICENSE) license.

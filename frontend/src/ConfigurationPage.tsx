@@ -1,3 +1,5 @@
+import { faDiscord } from '@fortawesome/free-brands-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Stack } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { zod4Resolver } from 'mantine-form-zod-resolver';
@@ -12,6 +14,7 @@ import Switch from '@/elements/input/Switch.tsx';
 import TextArea from '@/elements/input/TextArea.tsx';
 import TextInput from '@/elements/input/TextInput.tsx';
 import Group from '@/elements/layout/Group.tsx';
+import Anchor from '@/elements/typography/Anchor.tsx';
 import Code from '@/elements/typography/Code.tsx';
 import { useToast } from '@/providers/ToastProvider.tsx';
 import { useGlobalStore } from '@/stores/global.ts';
@@ -115,7 +118,22 @@ export default function ConfigurationPage() {
   };
 
   return (
-    <TitleCard title={tExt(`${K}.title`, {})}>
+    <TitleCard
+      title={tExt(`${K}.title`, {})}
+      rightSection={
+        <Anchor
+          href='https://discord.gg/4qjMWU7S8x'
+          target='_blank'
+          rel='noopener noreferrer'
+          size='sm'
+          ml='auto'
+          className='inline-flex items-center gap-1.5'
+        >
+          <FontAwesomeIcon icon={faDiscord} />
+          {tExt(`${K}.support`, {})}
+        </Anchor>
+      }
+    >
       <Stack gap='md' p='md'>
         <Alert color='blue' title={tExt(`${K}.redirectUri`, {})}>
           <Code block>{`${appUrl.replace(/\/+$/, '')}${REDIRECT_URI_PATH}`}</Code>

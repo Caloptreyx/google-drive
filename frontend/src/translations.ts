@@ -173,6 +173,7 @@ const translations = defineTranslations({
             'Exchanges a throwaway code against Google using the saved credentials - save first, then test. No user account is involved.',
           testValid: 'Google accepted the saved credentials - a real link would work.',
           testInvalid: 'Google rejected the saved credentials.',
+          support: 'Support & feature requests',
           button: {
             save: 'Save',
           },

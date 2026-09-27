@@ -107,6 +107,10 @@ Full schemas are in the panel's OpenAPI document once installed.
   `drives.list` sits outside the `drive.file` scope.
 - Translations (English only for now).
 
+## Support
+
+Need help or want to request a feature? Join the [Caloptreyx Discord](https://discord.gg/4qjMWU7S8x).
+
 ## License
 
 MIT
