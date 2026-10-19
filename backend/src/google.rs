@@ -606,7 +606,7 @@ pub async fn list_server_files(
                 ("q", q.clone()),
                 (
                     "fields",
-                    "nextPageToken,files(id,name,createdTime)".to_string(),
+                    "nextPageToken,files(id,name,size,createdTime,appProperties)".to_string(),
                 ),
                 ("pageSize", "100".to_string()),
                 ("orderBy", "createdTime desc".to_string()),

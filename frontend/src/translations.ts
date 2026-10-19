@@ -37,6 +37,18 @@ const translations = defineTranslations({
             unavailable: 'Storage usage is unavailable right now.',
             mirrored: '{count} uploads mirrored · {size} total',
           },
+          settings: {
+            title: 'Backup Retention & Duplicates',
+            keepCopies: 'Keep newest copies per server',
+            keepCopiesHint:
+              'Maximum backups to keep per server in Google Drive (0 = keep all / unlimited). Older backups are automatically moved to the Drive trash when new ones are pushed.',
+            save: 'Save Retention Limit',
+            cleanDuplicates: 'Clean Up Duplicates & Old Backups',
+            cleanDuplicatesHint:
+              'Scan your Google Drive to purge duplicate backup files, remove 0-byte incomplete uploads, and enforce your retention limit right now.',
+            savedToast: 'Backup retention limit saved.',
+            cleanedToast: 'Cleaned up {count} duplicate or old file(s) in Drive.',
+          },
           button: {
             connect: 'Connect Google Drive',
             unlink: 'Unlink',

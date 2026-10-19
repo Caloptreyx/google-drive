@@ -10,6 +10,7 @@ import {
   gdriveAdminSettingsSchema,
   gdriveBackupSchema,
   gdriveCancelledSchema,
+  gdriveCleanupResultSchema,
   gdriveConfigSchema,
   gdriveConnectSchema,
   gdriveDeletedFileSchema,
@@ -176,3 +177,16 @@ export async function testCredentials(): Promise<GDriveProbe> {
 
   return parseFromApi(gdriveProbeSchema, data);
 }
+
+export async function saveUserSettings(settings: { keepCopies: number | null }) {
+  const { data } = await axiosInstance.put(`${BASE}/settings`, settings);
+
+  return data;
+}
+
+export async function cleanDuplicates() {
+  const { data } = await axiosInstance.post(`${BASE}/cleanup`);
+
+  return parseFromApi(gdriveCleanupResultSchema, data);
+}
+

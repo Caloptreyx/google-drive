@@ -10,7 +10,7 @@ use compact_str::CompactString;
 use shared::prelude::*;
 use sqlx::Row;
 
-pub const CONNECTION_COLUMNS: &str = "user_uuid, account_email, folder_id, folder_name, refresh_token, scope, connected_at, last_used_at, needs_reauth_at";
+pub const CONNECTION_COLUMNS: &str = "user_uuid, account_email, folder_id, folder_name, refresh_token, scope, connected_at, last_used_at, needs_reauth_at, keep_copies";
 
 #[derive(Clone, Debug)]
 pub struct GDriveConnection {
@@ -31,6 +31,9 @@ pub struct GDriveConnection {
     /// [`GDriveConnection::clear_needs_reauth`]). While set, the worker stops claiming
     /// this user's pushes so no attempts are burned on a grant that cannot work.
     pub needs_reauth_at: Option<chrono::DateTime<chrono::Utc>>,
+    /// User-level limit for how many backup copies to retain in Drive per server.
+    /// `None` inherits from admin setting, `Some(0)` means keep all, `Some(N)` means keep N.
+    pub keep_copies: Option<i64>,
 }
 
 impl GDriveConnection {
@@ -45,6 +48,7 @@ impl GDriveConnection {
             connected_at: row.try_get("connected_at")?,
             last_used_at: row.try_get("last_used_at")?,
             needs_reauth_at: row.try_get("needs_reauth_at")?,
+            keep_copies: row.try_get("keep_copies").ok().flatten(),
         })
     }
 
@@ -168,6 +172,21 @@ impl GDriveConnection {
     ) -> Result<(), shared::database::DatabaseError> {
         sqlx::query("UPDATE gdrive_connections SET needs_reauth_at = NULL WHERE user_uuid = $1")
             .bind(user_uuid)
+            .execute(database.write())
+            .await?;
+
+        Ok(())
+    }
+
+    /// Update user-level retention limit (keep_copies).
+    pub async fn update_keep_copies(
+        database: &shared::database::Database,
+        user_uuid: uuid::Uuid,
+        keep_copies: Option<i64>,
+    ) -> Result<(), shared::database::DatabaseError> {
+        sqlx::query("UPDATE gdrive_connections SET keep_copies = $2 WHERE user_uuid = $1")
+            .bind(user_uuid)
+            .bind(keep_copies)
             .execute(database.write())
             .await?;
 

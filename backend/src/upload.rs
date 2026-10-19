@@ -935,7 +935,12 @@ async fn enforce_retention(
     server_uuid: uuid::Uuid,
     just_uploaded: &str,
 ) -> Result<(), anyhow::Error> {
-    let keep_copies = settings::current(state).await?.keep_copies;
+    let connection = GDriveConnection::by_user_uuid(&state.database, push.user_uuid).await?;
+    let user_limit = connection.and_then(|c| c.keep_copies);
+    let keep_copies = match user_limit {
+        Some(limit) => limit,
+        None => settings::current(state).await?.keep_copies,
+    };
 
     crate::retention::enforce(
         state,
@@ -944,7 +949,9 @@ async fn enforce_retention(
         keep_copies,
         just_uploaded,
     )
-    .await
+    .await?;
+
+    Ok(())
 }
 
 /// Drive has no path separators in names, and a server name containing `/` would

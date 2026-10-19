@@ -35,6 +35,7 @@ mod status {
         /// Google refused this account's refresh token (`invalid_grant`): pushes are
         /// paused until the user reconnects. Drives the reconnect banner.
         needs_reauth: bool,
+        keep_copies: Option<i64>,
     }
 
     #[derive(ToSchema, Serialize)]
@@ -77,6 +78,7 @@ mod status {
                 connected_at: connection.connected_at,
                 last_used_at: connection.last_used_at,
                 needs_reauth: connection.needs_reauth_at.is_some(),
+                keep_copies: connection.keep_copies,
             });
 
         ApiResponse::new_serialized(Response {
@@ -284,6 +286,99 @@ mod unlink {
 
     #[derive(serde::Serialize, utoipa::ToSchema)]
     struct Response {}
+}
+
+mod settings {
+    use axum::http::StatusCode;
+    use serde::{Deserialize, Serialize};
+    use shared::{
+        GetState,
+        models::user::{GetPermissionManager, GetUser},
+        response::{ApiResponse, ApiResponseResult},
+    };
+    use utoipa::ToSchema;
+
+    #[derive(ToSchema, Deserialize)]
+    pub struct SettingsUpdate {
+        pub keep_copies: Option<i64>,
+    }
+
+    #[derive(ToSchema, Serialize)]
+    pub struct Response {
+        pub updated: bool,
+    }
+
+    /// Update user-level Google Drive settings (e.g. keep_copies retention limit).
+    #[utoipa::path(put, path = "/settings", request_body = inline(SettingsUpdate), responses(
+        (status = OK, body = inline(Response)),
+        (status = BAD_REQUEST, body = shared::ApiError),
+        (status = FORBIDDEN, body = shared::ApiError),
+    ))]
+    pub async fn route(
+        state: GetState,
+        permissions: GetPermissionManager,
+        user: GetUser,
+        shared::Payload(payload): shared::Payload<SettingsUpdate>,
+    ) -> ApiResponseResult {
+        permissions.has_user_permission("gdrive.connect")?;
+
+        let _connection = crate::routes::require_connection(&state, user.uuid).await?;
+
+        if let Some(keep) = payload.keep_copies {
+            if keep < 0 {
+                return ApiResponse::error("keep_copies cannot be negative")
+                    .with_status(StatusCode::BAD_REQUEST)
+                    .ok();
+            }
+        }
+
+        crate::models::GDriveConnection::update_keep_copies(
+            &state.database,
+            user.uuid,
+            payload.keep_copies,
+        )
+        .await?;
+
+        ApiResponse::new_serialized(Response { updated: true }).ok()
+    }
+}
+
+mod cleanup {
+    use serde::Serialize;
+    use shared::{
+        GetState,
+        models::user::{GetPermissionManager, GetUser},
+        response::{ApiResponse, ApiResponseResult},
+    };
+    use utoipa::ToSchema;
+
+    #[derive(ToSchema, Serialize)]
+    pub struct Response {
+        pub cleaned: bool,
+        pub pruned_files: usize,
+    }
+
+    /// Prune duplicate files and enforce retention limits across all servers.
+    #[utoipa::path(post, path = "/cleanup", responses(
+        (status = OK, body = inline(Response)),
+        (status = FORBIDDEN, body = shared::ApiError),
+    ))]
+    pub async fn route(
+        state: GetState,
+        permissions: GetPermissionManager,
+        user: GetUser,
+    ) -> ApiResponseResult {
+        permissions.has_user_permission("gdrive.connect")?;
+
+        let _connection = crate::routes::require_connection(&state, user.uuid).await?;
+        let pruned_files = crate::retention::clean_user_backups(&state, user.uuid).await?;
+
+        ApiResponse::new_serialized(Response {
+            cleaned: true,
+            pruned_files,
+        })
+        .ok()
+    }
 }
 
 mod backups {
@@ -1411,6 +1506,8 @@ pub fn router(state: &shared::State) -> OpenApiRouter<shared::State> {
         .routes(routes!(stats::route))
         .routes(routes!(connect::route))
         .routes(routes!(unlink::route))
+        .routes(routes!(settings::route))
+        .routes(routes!(cleanup::route))
         .routes(routes!(backups::route))
         .routes(routes!(pushes::route))
         .routes(routes!(files::route))

@@ -13,7 +13,7 @@ import {
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Group, SimpleGrid, Stack } from '@mantine/core';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { httpErrorToHuman } from '@/api/axios.ts';
 import Button from '@/elements/buttons/Button.tsx';
 import AccountContentContainer from '@/elements/containers/AccountContentContainer.tsx';
@@ -22,6 +22,7 @@ import Table, { TableData, TableRow } from '@/elements/data-display/Table.tsx';
 import TitleCard from '@/elements/data-display/TitleCard.tsx';
 import Alert from '@/elements/feedback/Alert.tsx';
 import Progress from '@/elements/feedback/Progress.tsx';
+import NumberInput from '@/elements/input/NumberInput.tsx';
 import TextInput from '@/elements/input/TextInput.tsx';
 import ConfirmationModal from '@/elements/modals/ConfirmationModal.tsx';
 import FormattedTimestamp from '@/elements/time/FormattedTimestamp.tsx';
@@ -32,6 +33,7 @@ import { useToast } from '@/providers/ToastProvider.tsx';
 import { useTranslations } from '@/providers/TranslationProvider.tsx';
 import {
   cancelPush,
+  cleanDuplicates,
   connect,
   deleteDriveFile,
   getStats,
@@ -41,6 +43,7 @@ import {
   listPushes,
   pushBackup,
   restoreFromDrive,
+  saveUserSettings,
   unlink,
 } from './api.ts';
 import {
@@ -97,6 +100,11 @@ export default function GoogleDriveAccountPage() {
   const [restoring, setRestoring] = useState<PendingRestore | null>(null);
   /** Which per-server subfolder the Files table is inside; `null` is the backup root. */
   const [openFolder, setOpenFolder] = useState<{ id: string; name: string } | null>(null);
+
+  const [keepCopies, setKeepCopies] = useState<number>(0);
+  const [keepCopiesInitialized, setKeepCopiesInitialized] = useState(false);
+  const [savingSettings, setSavingSettings] = useState(false);
+  const [cleaningDuplicates, setCleaningDuplicates] = useState(false);
 
   const status = useQuery({
     queryKey: GDRIVE_STATUS_KEY,
@@ -248,6 +256,41 @@ export default function GoogleDriveAccountPage() {
       queryClient.invalidateQueries({ queryKey: GDRIVE_FILES_KEY });
       addToast(tExt(`${K}.unlink.toast`, {}), 'success');
     });
+
+  useEffect(() => {
+    if (connection && !keepCopiesInitialized) {
+      setKeepCopies(connection.keepCopies ?? 0);
+      setKeepCopiesInitialized(true);
+    }
+  }, [connection, keepCopiesInitialized]);
+
+  const doSaveSettings = async () => {
+    setSavingSettings(true);
+    try {
+      await saveUserSettings({ keepCopies });
+      addToast(tExt(`${K}.settings.savedToast`, {}), 'success');
+      await queryClient.invalidateQueries({ queryKey: GDRIVE_STATUS_KEY });
+    } catch (error) {
+      addToast(httpErrorToHuman(error), 'error');
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
+  const doCleanDuplicates = async () => {
+    setCleaningDuplicates(true);
+    try {
+      const result = await cleanDuplicates();
+      addToast(tExt(`${K}.settings.cleanedToast`, { count: result.prunedFiles }), 'success');
+      await queryClient.invalidateQueries({ queryKey: GDRIVE_FILES_KEY });
+      await queryClient.invalidateQueries({ queryKey: GDRIVE_STATS_KEY });
+      await queryClient.invalidateQueries({ queryKey: GDRIVE_STATUS_KEY });
+    } catch (error) {
+      addToast(httpErrorToHuman(error), 'error');
+    } finally {
+      setCleaningDuplicates(false);
+    }
+  };
 
   const doRefresh = () => {
     void status.refetch();
@@ -406,6 +449,42 @@ export default function GoogleDriveAccountPage() {
                   count: stats.data.completedPushes,
                   size: bytesToString(stats.data.bytes, 2, true),
                 })}
+              </div>
+            </Stack>
+          </TitleCard>
+        )}
+
+        {connected && (
+          <TitleCard
+            title={tExt(`${K}.settings.title`, {})}
+            icon={<FontAwesomeIcon icon={faArrowsRotate} />}
+          >
+            <Stack gap='sm'>
+              <div className='max-w-md'>
+                <NumberInput
+                  label={tExt(`${K}.settings.keepCopies`, {})}
+                  description={tExt(`${K}.settings.keepCopiesHint`, {})}
+                  min={0}
+                  value={keepCopies}
+                  onChange={(val) => setKeepCopies(typeof val === 'number' ? val : 0)}
+                />
+              </div>
+              <Group gap='sm'>
+                <Button loading={savingSettings} onClick={doSaveSettings}>
+                  {tExt(`${K}.settings.save`, {})}
+                </Button>
+                <Button
+                  variant='light'
+                  color='blue'
+                  leftSection={<FontAwesomeIcon icon={faTrash} />}
+                  loading={cleaningDuplicates}
+                  onClick={doCleanDuplicates}
+                >
+                  {tExt(`${K}.settings.cleanDuplicates`, {})}
+                </Button>
+              </Group>
+              <div className='text-xs text-(--mantine-color-dimmed)'>
+                {tExt(`${K}.settings.cleanDuplicatesHint`, {})}
               </div>
             </Stack>
           </TitleCard>

@@ -23,8 +23,20 @@ export const gdriveConnectionSchema = z.object({
    * sits at `pending` is not a mystery.
    */
   needsReauth: z.boolean(),
+  keepCopies: z.number().nullable().optional(),
 });
 export type GDriveConnection = z.infer<typeof gdriveConnectionSchema>;
+
+export const gdriveUserSettingsSchema = z.object({
+  keepCopies: z.number().nullable(),
+});
+export type GDriveUserSettings = z.infer<typeof gdriveUserSettingsSchema>;
+
+export const gdriveCleanupResultSchema = z.object({
+  cleaned: z.boolean(),
+  prunedFiles: z.number(),
+});
+export type GDriveCleanupResult = z.infer<typeof gdriveCleanupResultSchema>;
 
 export const gdrivePushSchema = z.object({
   backupUuid: z.string(),
