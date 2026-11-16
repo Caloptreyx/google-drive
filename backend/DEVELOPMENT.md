@@ -62,7 +62,7 @@ Extensions need the `:heavy`/`:nightly-heavy` image, or a development environmen
 
    ```bash
    cargo fmt && cargo clippy
-   cd frontend && pnpm biome:fix-unsafe && pnpm build:ci && cd ..
+   cd frontend && pnpm fmt && pnpm lint:fix && pnpm build:ci && cd ..
    PATH="$HOME/.cargo/bin:$PATH" SQLX_OFFLINE=true ./target/debug/panel-rs extensions export dev.caloptreyx.gdrive
    ```
 

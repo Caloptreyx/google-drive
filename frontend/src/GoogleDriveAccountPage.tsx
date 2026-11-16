@@ -455,10 +455,7 @@ export default function GoogleDriveAccountPage() {
         )}
 
         {connected && (
-          <TitleCard
-            title={tExt(`${K}.settings.title`, {})}
-            icon={<FontAwesomeIcon icon={faArrowsRotate} />}
-          >
+          <TitleCard title={tExt(`${K}.settings.title`, {})} icon={<FontAwesomeIcon icon={faArrowsRotate} />}>
             <Stack gap='sm'>
               <div className='max-w-md'>
                 <NumberInput
