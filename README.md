@@ -2,7 +2,7 @@
 
 A [Calagopus Panel](https://calagopus.com) extension that mirrors server backups into Google Drive — push finished backups from the panel, browse them rclone-style, and restore a server from an off-site copy, all without leaving the panel. Feature inspired by Aternos.
 
-This extension requires a panel version of `>=1.2.2`, and is currently on beta. Do not expect this product to work on the first try.
+This extension requires a panel version of `>=1.2.10`, and is currently on beta. Do not expect this product to work on the first try.
 
 ## ⚒️ Features
 
@@ -43,7 +43,7 @@ Then the settings:
 
 Scope used: `openid email https://www.googleapis.com/auth/drive.file` — deliberately narrow: one OAuth client covers every panel user, and `drive.file` still keeps it out of the rest of their Drive.
 
-Permissions: user `gdrive.read|connect|manage`, server `gdrive.push|restore`.
+Permissions: user `gdrive.read|connect|manage`, server `gdrive.push|restore`. These add to core's backup permissions, never replace them: listing needs `backups.read`, pushing `backups.download`, restoring `backups.restore`. Linking and unlinking are refused while impersonating.
 
 More information about the Google Cloud setup is also available [here](https://github.com/Caloptreyx/google-drive/blob/main/DEVELOPMENT.md#google-cloud-setup-once-by-the-admin).
 

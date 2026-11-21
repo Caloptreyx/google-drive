@@ -48,13 +48,10 @@ already landed there - rclone-style, from the panel.
 
 ## Compatibility
 
-Requires panel **1.2.2 or newer**. Every panel API this extension uses exists in the
-1.2.2 release; the single 1.2.3-only symbol (`shared::models::search_sql`) is
-reimplemented locally in `src/models.rs`, because a panel compiles an extension against
-*its own* copy of `shared` and would fail the build. Frontend dependency ranges are held
-at 1.2.2's minima (`@mantine/core ^9.6.0`, `@tanstack/react-query ^5.102.8`,
-`react ^19.2.8`, `zod ^4.5.4`) so a 1.2.2 panel's lockfile resolves them to the copies
-core already has, instead of installing a second React Query or Mantine beside it.
+Requires panel **1.2.10 or newer**, the release the shared CI check builds against. The
+local `search_sql` in `src/models.rs` and the frontend dependency ranges held at 1.2.2's
+minima (`@mantine/core ^9.6.0`, `@tanstack/react-query ^5.102.8`, `react ^19.2.8`,
+`zod ^4.5.4`) are left from when the extension still installed onto 1.2.2.
 
 ## Install
 
@@ -174,6 +171,14 @@ Sessions always hold every user permission, which is why deletion is gated separ
 an API key scoped to `gdrive.read` alone must not be able to trash archives. Restore is
 its own server-scoped permission for the same reason: it overwrites the server's files,
 so a key that may push must not thereby be able to restore.
+
+The extension's permissions add to core's, never replace them. `/backups` lists only
+servers where the caller holds `backups.read`; push also needs `backups.download` (it
+copies the archive off-site) and restore `backups.restore`. Push, restore and the list
+skip servers core's availability guard refuses (suspended, transferring, installing,
+restoring), with core's `servers.update` exemption for suspended servers. Connect and
+unlink call `deny_while_impersonating()`: a link made while impersonating would send
+the user's later backups to the impersonator's Drive.
 
 ## API surface
 

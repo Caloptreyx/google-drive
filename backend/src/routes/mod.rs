@@ -6,7 +6,10 @@ pub mod client;
 
 use axum::http::StatusCode;
 use compact_str::CompactString;
-use shared::response::ApiResponse;
+use shared::{
+    models::{server::Server, user::PermissionManager},
+    response::ApiResponse,
+};
 
 use crate::{models::GDriveConnection, settings::GDriveSettingsData};
 
@@ -48,6 +51,40 @@ pub async fn require_connection(
             ApiResponse::error("no google drive account linked")
                 .with_status(StatusCode::PRECONDITION_FAILED)
         })
+}
+
+/// The availability guard core puts in front of every `/servers/{server}` client route
+/// (`backend/src/routes/api/client/servers/_server_/mod.rs`): a suspended, transferring,
+/// installing or restoring server refuses with 409, except that an admin holding
+/// `servers.update` may still act on a suspended one. Push and restore resolve the server
+/// themselves, outside that middleware, so they call this instead.
+pub fn require_server_available(
+    permissions: &PermissionManager,
+    server: &Server,
+) -> Result<(), ApiResponse> {
+    let refusal = unavailable_refusal(server.unavailable_reason(), server.suspended, || {
+        permissions.has_admin_permission("servers.update").is_ok()
+    });
+
+    match refusal {
+        Some(message) => Err(ApiResponse::error(message).with_status(StatusCode::CONFLICT)),
+        None => Ok(()),
+    }
+}
+
+/// Core's decision, minus the types that need a database to build.
+fn unavailable_refusal(
+    reason: Option<&'static str>,
+    suspended: bool,
+    can_update_servers: impl FnOnce() -> bool,
+) -> Option<&'static str> {
+    let reason = reason?;
+
+    if suspended && can_update_servers() {
+        return None;
+    }
+
+    Some(reason)
 }
 
 /// Cache key namespace for in-flight Drive connections.
@@ -95,7 +132,7 @@ pub fn restore_archive_url(app_url: &str, token: uuid::Uuid) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::restore_archive_url;
+    use super::{restore_archive_url, unavailable_refusal};
 
     #[test]
     fn the_archive_url_sits_under_the_callback_path_and_ends_in_tar_gz() {
@@ -116,5 +153,26 @@ mod tests {
         // Wings reads the archive format off the final path segment, so this suffix is
         // the whole reason the restore is accepted at all.
         assert!(url.ends_with("/backup.tar.gz"));
+    }
+
+    #[test]
+    fn an_unavailable_server_is_refused_unless_an_admin_acts_on_a_suspension() {
+        assert_eq!(unavailable_refusal(None, false, || false), None);
+
+        assert_eq!(
+            unavailable_refusal(Some("server is suspended"), true, || false),
+            Some("server is suspended")
+        );
+        assert_eq!(
+            unavailable_refusal(Some("server is suspended"), true, || true),
+            None
+        );
+
+        // The admin exemption is for suspension only: installing, restoring and
+        // transferring servers stay refused for everyone, as in core.
+        assert_eq!(
+            unavailable_refusal(Some("server is currently installing"), false, || true),
+            Some("server is currently installing")
+        );
     }
 }

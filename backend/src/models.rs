@@ -647,12 +647,11 @@ pub struct PushableBackup {
 
 /// The `search` predicate group for the two paginated queries below.
 ///
-/// Built here rather than by `shared::models::search_sql`, which only landed in 1.2.3
-/// (commit `c155c2dc`) while this extension still installs onto 1.2.2 panels - and a
-/// panel compiles an extension against *its own* copy of `shared`, so calling it would
-/// not build there. Same shape as the inline predicates core used before that commit:
-/// one NULL-tolerant ILIKE disjunct per column, so an unbound search matches every row,
-/// and the group only ever references `param` rather than introducing one of its own.
+/// Kept from when this extension still installed onto 1.2.2 panels, before
+/// `shared::models::search_sql` landed in 1.2.3 (commit `c155c2dc`). Same shape as the
+/// inline predicates core used before that commit: one NULL-tolerant ILIKE disjunct per
+/// column, so an unbound search matches every row, and the group only ever references
+/// `param` rather than introducing one of its own.
 fn search_sql(param: u8, text_columns: &[&str]) -> CompactString {
     let mut clauses = Vec::with_capacity(text_columns.len() + 1);
     clauses.push(compact_str::format_compact!("${param}::text IS NULL"));
@@ -666,6 +665,12 @@ fn search_sql(param: u8, text_columns: &[&str]) -> CompactString {
     compact_str::format_compact!("({})", clauses.join(" OR "))
 }
 
+/// `backups_read_everywhere`: the caller holds `backups.read` on every server (admin or
+/// role grant), so any subuser row counts; otherwise a subuser row counts only when it
+/// grants `backups.read`, as core's per-server backup list requires.
+/// `include_suspended`: the caller holds core's `servers.update` exemption for
+/// suspended servers. Every other server core's availability guard refuses is left out.
+#[allow(clippy::too_many_arguments)]
 pub async fn pushable_backups(
     database: &shared::database::Database,
     user_uuid: uuid::Uuid,
@@ -673,6 +678,8 @@ pub async fn pushable_backups(
     per_page: i64,
     search: Option<&str>,
     include_database_backups: bool,
+    backups_read_everywhere: bool,
+    include_suspended: bool,
 ) -> Result<(i64, Vec<PushableBackup>), shared::database::DatabaseError> {
     let offset = (page - 1) * per_page;
 
@@ -714,6 +721,15 @@ pub async fn pushable_backups(
                     SELECT 1 FROM server_subusers
                     WHERE server_subusers.server_uuid = servers.uuid
                       AND server_subusers.user_uuid = $1
+                      AND ($6::boolean OR 'backups.read' = ANY(server_subusers.permissions))
+                )
+          )
+          AND (
+                (servers.suspended AND $7::boolean)
+                OR (
+                    NOT servers.suspended
+                    AND servers.destination_node_uuid IS NULL
+                    AND servers.status IS NULL
                 )
           )
           AND {search}
@@ -727,6 +743,8 @@ pub async fn pushable_backups(
     .bind(per_page)
     .bind(offset)
     .bind(include_database_backups)
+    .bind(backups_read_everywhere)
+    .bind(include_suspended)
     .fetch_all(database.read())
     .await?;
 

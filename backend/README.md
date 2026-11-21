@@ -4,7 +4,7 @@ A [Calagopus Panel](https://calagopus.com) extension that mirrors server backups
 Google Drive — push finished backups from the panel, browse them rclone-style, and restore
 a server from an off-site copy, all without leaving the panel.
 
-Package name: `dev.caloptreyx.gdrive` · Requires panel `>=1.2.2`
+Package name: `dev.caloptreyx.gdrive` · Requires panel `>=1.2.10`
 
 ## Features
 
@@ -77,7 +77,10 @@ Scope used: `openid email https://www.googleapis.com/auth/drive.file` — delibe
 narrow: one OAuth client covers every panel user, and `drive.file` still keeps it out of
 the rest of their Drive.
 
-Permissions: user `gdrive.read|connect|manage`, server `gdrive.push|restore`.
+Permissions: user `gdrive.read|connect|manage`, server `gdrive.push|restore`. These add to
+core's backup permissions, never replace them: listing needs `backups.read`, pushing
+`backups.download`, restoring `backups.restore`. Linking and unlinking are refused while
+impersonating.
 
 ## Usage
 

@@ -204,6 +204,9 @@ mod connect {
         cookies: Cookies,
     ) -> ApiResponseResult {
         permissions.has_user_permission("gdrive.connect")?;
+        // A link made while impersonating would outlive the impersonation: every later
+        // backup of this user's servers would go to whoever linked their own Drive here.
+        permissions.deny_while_impersonating()?;
 
         let secure;
         let callback;
@@ -278,6 +281,7 @@ mod unlink {
         user: GetUser,
     ) -> ApiResponseResult {
         permissions.has_user_permission("gdrive.connect")?;
+        permissions.deny_while_impersonating()?;
 
         crate::models::GDriveConnection::delete(&state.database, user.uuid).await?;
 
@@ -441,6 +445,26 @@ mod backups {
 
         permissions.has_user_permission("gdrive.read")?;
 
+        // Core's per-server backup list needs `backups.read`. A credential scoped
+        // without it reads no backups anywhere; otherwise a server counts when the
+        // caller owns it, holds `backups.read` there as a subuser, or holds it on every
+        // server through admin or role grants.
+        if !permissions
+            .scope()
+            .covers(&[], &[], &["backups.read".into()])
+        {
+            return ApiResponse::error(
+                "you do not have permission to perform this action: backups.read",
+            )
+            .with_status(StatusCode::FORBIDDEN)
+            .ok();
+        }
+        let backups_read_everywhere = permissions.has_server_permission("backups.read").is_ok();
+        // Servers core's availability guard refuses (suspended, transferring,
+        // installing, restoring) drop out, as push refuses them; a suspended one stays
+        // for a caller holding core's `servers.update` exemption.
+        let include_suspended = permissions.has_admin_permission("servers.update").is_ok();
+
         // Same read the status call makes: whether database backups show up as
         // pushable is decided by this switch, and the table must never offer a
         // backup the push route would then refuse.
@@ -453,6 +477,8 @@ mod backups {
             params.per_page,
             params.search.as_deref(),
             include_database_backups,
+            backups_read_everywhere,
+            include_suspended,
         )
         .await?;
 
@@ -861,9 +887,13 @@ mod push {
                 Err(err) => return Err(ApiResponse::from(err)),
             };
 
-        permissions
-            .for_server(&server)
-            .has_server_permission("gdrive.push")?;
+        crate::routes::require_server_available(&permissions, &server)?;
+
+        // Pushing copies the whole archive off-site, so it is a download as far as core
+        // is concerned: `gdrive.push` alone never stands in for `backups.download`.
+        let server_permissions = permissions.for_server(&server);
+        server_permissions.has_server_permission("backups.download")?;
+        server_permissions.has_server_permission("gdrive.push")?;
 
         let backup =
             match ServerBackup::by_server_uuid_uuid(&state.database, server.uuid, data.backup_uuid)
@@ -1208,9 +1238,13 @@ mod restore {
                 Err(err) => return Err(ApiResponse::from(err)),
             };
 
-        permissions
-            .for_server(&server)
-            .has_server_permission("gdrive.restore")?;
+        crate::routes::require_server_available(&permissions, &server)?;
+
+        // Core's own restore needs `backups.restore`; `gdrive.restore` only adds the
+        // Drive source on top of it.
+        let server_permissions = permissions.for_server(&server);
+        server_permissions.has_server_permission("backups.restore")?;
+        server_permissions.has_server_permission("gdrive.restore")?;
 
         let connection = crate::routes::require_connection(&state, user.uuid).await?;
         let client = tokens::client()?;
