@@ -20,6 +20,16 @@ This extension requires a panel version of `>=1.2.10`, and is currently on beta.
 - **Update checks**: the panel's Updates tab shows when a newer release is published on GitHub, with its changelog, next to panel and node updates — checked at startup, every 12 hours, and on demand. Releases are tagged `vX.Y.Z`; pre-releases are never offered.
 - **Restore from Drive**: the Files and Backups tables carry a Restore button that streams the archive back out of Drive, through the panel, into Wings — single-use 15-minute token, no link-sharing, no public URL, no Wings changes. A Drive-only archive whose panel row was deleted is imported as a backup row first, so it shows up in the backups list like any other.
 
+## 🖼️ Screenshots
+
+**Account → Google Drive** before an account is linked.
+
+![Google Drive account page](docs/screenshots/account-page.png)
+
+**Admin configuration**: the redirect URI, OAuth client and push settings.
+
+![Google Drive admin configuration](docs/screenshots/admin-settings.png)
+
 ## ➕ Installation
 
 Download `dev_caloptreyx_gdrive.c7s.zip` from the [latest release](https://github.com/Caloptreyx/google-drive/releases/latest) and either upload it under **Admin → Extensions** or drop it into your heavy image's `build/extensions/` directory and `docker compose restart web`. Extensions require the `:heavy` panel image (or a dev environment) — see the [Calagopus docs](https://calagopus.com/docs/panel/extensions/installing-extensions).
