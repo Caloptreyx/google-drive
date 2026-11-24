@@ -1,4 +1,6 @@
 import { faCloudArrowUp } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { createElement } from 'react';
 import { Extension, ExtensionContext } from 'shared';
 import ConfigurationPage from './ConfigurationPage.tsx';
 import GoogleDriveAccountPage from './GoogleDriveAccountPage.tsx';
@@ -18,6 +20,12 @@ class DevCaloptreyxGdriveExtension extends Extension {
         path: '/google-drive',
         element: GoogleDriveAccountPage,
       }),
+    );
+
+    ctx.extensionRegistry.enterPermissionIcons((icons) =>
+      icons
+        .addUserPermissionIcon('gdrive', createElement(FontAwesomeIcon, { icon: faCloudArrowUp }))
+        .addServerPermissionIcon('gdrive', createElement(FontAwesomeIcon, { icon: faCloudArrowUp })),
     );
   }
 }
